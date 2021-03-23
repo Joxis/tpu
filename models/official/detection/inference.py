@@ -33,6 +33,7 @@ from absl import logging
 
 import numpy as np
 from PIL import Image
+from matplotlib import pyplot as plt
 import tensorflow.compat.v1 as tf
 
 from configs import factory as config_factory
@@ -138,8 +139,8 @@ def main(unused_argv):
     outputs = model.build_outputs(
         images, {'image_info': images_info}, mode=mode_keys.PREDICT)
 
-    outputs['detection_boxes'] = (
-        outputs['detection_boxes'] / tf.tile(images_info[:, 2:3, :], [1, 1, 2]))
+    # outputs['detection_boxes'] = (
+    #     outputs['detection_boxes'] / tf.tile(images_info[:, 2:3, :], [1, 1, 2]))
 
     predictions = outputs
 
@@ -163,52 +164,66 @@ def main(unused_argv):
         width, height = image.size
         np_image = (np.array(image.getdata())
                     .reshape(height, width, 3).astype(np.uint8))
+        print(np_image.shape)
 
         predictions_np = sess.run(
             predictions, feed_dict={image_input: image_bytes})
 
-        num_detections = int(predictions_np['num_detections'][0])
-        np_boxes = predictions_np['detection_boxes'][0, :num_detections]
-        np_scores = predictions_np['detection_scores'][0, :num_detections]
-        np_classes = predictions_np['detection_classes'][0, :num_detections]
-        np_classes = np_classes.astype(np.int32)
-        np_masks = None
-        if 'detection_masks' in predictions_np:
-          instance_masks = predictions_np['detection_masks'][0, :num_detections]
-          np_masks = mask_utils.paste_instance_masks(
-              instance_masks, box_utils.yxyx_to_xywh(np_boxes), height, width)
+        logits = predictions_np['logits'][0]
+        print(logits.shape)
 
-        image_with_detections = (
-            visualization_utils.visualize_boxes_and_labels_on_image_array(
-                np_image,
-                np_boxes,
-                np_classes,
-                np_scores,
-                label_map_dict,
-                instance_masks=np_masks,
-                use_normalized_coordinates=False,
-                max_boxes_to_draw=FLAGS.max_boxes_to_draw,
-                min_score_thresh=FLAGS.min_score_threshold))
-        image_with_detections_list.append(image_with_detections)
+        labels = np.argmax(logits.squeeze(), -1)
+        print(labels.shape)
+        print(labels)
+        labels = np.array(
+            Image.fromarray(labels.astype('uint8')))
+        print(labels.shape)
 
-  print(' - Saving the outputs...')
-  formatted_image_with_detections_list = [
-      Image.fromarray(image.astype(np.uint8))
-      for image in image_with_detections_list]
-  html_str = '<html>'
-  image_strs = []
-  for formatted_image in formatted_image_with_detections_list:
-    with io.BytesIO() as stream:
-      formatted_image.save(stream, format='JPEG')
-      data_uri = base64.b64encode(stream.getvalue()).decode('utf-8')
-    image_strs.append(
-        '<img src="data:image/jpeg;base64,{}", height=800>'
-        .format(data_uri))
-  images_str = ' '.join(image_strs)
-  html_str += images_str
-  html_str += '</html>'
-  with tf.gfile.GFile(FLAGS.output_html, 'w') as f:
-    f.write(html_str)
+        plt.imshow(labels)
+        plt.savefig(f"temp-{i}.png")
+
+        # num_detections = int(predictions_np['num_detections'][0])
+        # np_boxes = predictions_np['detection_boxes'][0, :num_detections]
+        # np_scores = predictions_np['detection_scores'][0, :num_detections]
+        # np_classes = predictions_np['detection_classes'][0, :num_detections]
+        # np_classes = np_classes.astype(np.int32)
+        # np_masks = None
+        # if 'detection_masks' in predictions_np:
+        #   instance_masks = predictions_np['detection_masks'][0, :num_detections]
+        #   np_masks = mask_utils.paste_instance_masks(
+        #       instance_masks, box_utils.yxyx_to_xywh(np_boxes), height, width)
+        #
+        # image_with_detections = (
+        #     visualization_utils.visualize_boxes_and_labels_on_image_array(
+        #         np_image,
+        #         np_boxes,
+        #         np_classes,
+        #         np_scores,
+        #         label_map_dict,
+        #         instance_masks=np_masks,
+        #         use_normalized_coordinates=False,
+        #         max_boxes_to_draw=FLAGS.max_boxes_to_draw,
+        #         min_score_thresh=FLAGS.min_score_threshold))
+        # image_with_detections_list.append(image_with_detections)
+
+  # print(' - Saving the outputs...')
+  # formatted_image_with_detections_list = [
+  #     Image.fromarray(image.astype(np.uint8))
+  #     for image in image_with_detections_list]
+  # html_str = '<html>'
+  # image_strs = []
+  # for formatted_image in formatted_image_with_detections_list:
+  #   with io.BytesIO() as stream:
+  #     formatted_image.save(stream, format='JPEG')
+  #     data_uri = base64.b64encode(stream.getvalue()).decode('utf-8')
+  #   image_strs.append(
+  #       '<img src="data:image/jpeg;base64,{}", height=800>'
+  #       .format(data_uri))
+  # images_str = ' '.join(image_strs)
+  # html_str += images_str
+  # html_str += '</html>'
+  # with tf.gfile.GFile(FLAGS.output_html, 'w') as f:
+  #   f.write(html_str)
 
 
 if __name__ == '__main__':

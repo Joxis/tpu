@@ -7,7 +7,7 @@ PARAMS_OVERRIDE=""  # if any.
 BATCH_SIZE=1
 INPUT_TYPE="image_bytes"
 INPUT_NAME="input"
-INPUT_IMAGE_SIZE="512,512"
+INPUT_IMAGE_SIZE="256,256"
 python models/official/detection/export_saved_model.py \
   --export_dir="${EXPORT_DIR?}" \
   --checkpoint_path="${CHECKPOINT_PATH?}" \

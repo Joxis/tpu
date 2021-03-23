@@ -41,14 +41,17 @@ def serving_input_fn(batch_size, desired_image_size, stride):
   Returns:
     A `tf.estimator.export.ServingInputReceiver` for a SavedModel.
   """
-  placeholder, features = inputs.image_bytes_input(
+  # placeholder, features = inputs.image_bytes_input(
+  #     batch_size, desired_image_size, stride)
+  placeholder, features = inputs.image_tensor_input(
       batch_size, desired_image_size, stride)
   keys_placeholder = tf.placeholder_with_default(['default'],
                                                  shape=[None],
                                                  name='key')
   score_threshold_placeholder = tf.placeholder(dtype=tf.float32, shape=[None])
   receiver_tensors = {
-      'image_bytes': placeholder,
+      # 'image_bytes': placeholder,
+      'input': placeholder,
       'key': keys_placeholder,
       'score_thresholds': score_threshold_placeholder
   }
@@ -128,19 +131,22 @@ def serving_model_fn_builder(export_tpu_model, output_image_info):
     categories = tf.to_int32(tf.expand_dims(tf.argmax(probabilities, 3), -1))
 
     # Generate images for scores and categories.
-    score_bytes = tf.map_fn(
-        tf.image.encode_png, scores, back_prop=False, dtype=tf.string)
-    category_bytes = tf.map_fn(
-        tf.image.encode_png,
-        tf.cast(categories, tf.uint8),
-        back_prop=False,
-        dtype=tf.string)
+    # score_bytes = tf.map_fn(
+    #     tf.image.encode_png, scores, back_prop=False, dtype=tf.string)
+    # category_bytes = tf.map_fn(
+    #     tf.image.encode_png,
+    #     tf.cast(categories, tf.uint8),
+    #     back_prop=False,
+    #     dtype=tf.string)
 
     predictions = {}
 
-    predictions['category_bytes'] = tf.identity(
-        category_bytes, name='category_bytes')
-    predictions['score_bytes'] = tf.identity(score_bytes, name='score_bytes')
+    # predictions['category_bytes'] = tf.identity(
+    #     category_bytes, name='category_bytes')
+    # predictions['score_bytes'] = tf.identity(score_bytes, name='score_bytes')
+    predictions['categories'] = tf.identity(
+        categories, name='categories')
+    predictions['scores'] = tf.identity(scores, name='scores')
     predictions['key'] = tf.identity(key_placeholder, name='key')
     if output_image_info:
       predictions['image_info'] = tf.identity(

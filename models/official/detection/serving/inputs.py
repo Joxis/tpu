@@ -89,10 +89,13 @@ def image_tensor_input(batch_size,
                        desired_image_size,
                        stride):
   """Image tensor input."""
-  desired_image_height, desired_image_width = desired_image_size
+  # desired_image_height, desired_image_width = desired_image_size
+  # placeholder = tf.placeholder(
+  #     dtype=tf.uint8,
+  #     shape=(batch_size, desired_image_height, desired_image_width, 3))
   placeholder = tf.placeholder(
       dtype=tf.uint8,
-      shape=(batch_size, desired_image_height, desired_image_width, 3))
+      shape=(batch_size, None, None, 3))
 
   def _prepare(image):
     return preprocess_image(
